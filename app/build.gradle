@@ -1,0 +1,46 @@
+plugins {
+    id 'org.springframework.boot' version '3.2.0'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'java'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // OpenTelemetry
+    implementation 'io.opentelemetry.javaagent:opentelemetry-javaagent:1.31.0'
+    implementation 'io.opentelemetry:opentelemetry-api:1.31.0'
+    implementation 'io.opentelemetry:opentelemetry-sdk:1.31.0'
+    implementation 'io.opentelemetry:opentelemetry-exporter-otlp:1.31.0'
+    implementation 'io.opentelemetry:opentelemetry-semconv:1.30.1-alpha'
+
+    // Logging
+    implementation 'org.springframework.boot:spring-boot-starter-logging'
+
+    // Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+// Create a task to copy the OpenTelemetry Java agent JAR to the build directory
+task copyJavaagent(type: Copy) {
+    from configurations.runtimeClasspath.filter { it.name.contains("opentelemetry-javaagent") }
+    into "${buildDir}/agent"
+    rename { String fileName -> "opentelemetry-javaagent.jar" }
+}
+
+bootJar {
+    dependsOn copyJavaagent
+}

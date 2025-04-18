@@ -1,0 +1,85 @@
+version: "3.9"
+
+services:
+  # Spring Boot Application
+  spring-app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_TOOL_OPTIONS=-javaagent:/app/opentelemetry-javaagent.jar
+      - OTEL_SERVICE_NAME=spring-opentelemetry-demo
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_METRICS_EXPORTER=otlp
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=spring-opentelemetry-demo
+    depends_on:
+      - otel-collector
+    networks:
+      - signoz-network
+
+  # SigNoz components
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.3.7.5-alpine
+    restart: on-failure
+    volumes:
+      - type: bind
+        source: ${PWD}/clickhouse-config.xml
+        target: /etc/clickhouse-server/config.d/logging.xml
+        read_only: true
+      - type: bind
+        source: ${PWD}/clickhouse-users.xml
+        target: /etc/clickhouse-server/users.d/logging.xml
+        read_only: true
+      - clickhouse-data:/var/lib/clickhouse
+    networks:
+      - signoz-network
+
+  query-service:
+    image: signoz/query-service:0.30.0
+    restart: on-failure
+    depends_on:
+      - clickhouse
+    environment:
+      - ClickHouseUrl=tcp://clickhouse:9000
+      - STORAGE=clickhouse
+      - GODEBUG=netdns=go
+    networks:
+      - signoz-network
+
+  frontend:
+    image: signoz/frontend:0.30.0
+    restart: on-failure
+    depends_on:
+      - query-service
+    ports:
+      - "3301:3301"
+    networks:
+      - signoz-network
+
+  otel-collector:
+    image: signoz/signoz-otel-collector:0.88.11
+    restart: on-failure
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - type: bind
+        source: ${PWD}/otel-collector-config.yaml
+        target: /etc/otel-collector-config.yaml
+    environment:
+      - SIGNOZ_CLICKHOUSE_ENDPOINT=tcp://clickhouse:9000
+    depends_on:
+      - clickhouse
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    networks:
+      - signoz-network
+
+networks:
+  signoz-network:
+
+volumes:
+  clickhouse-data:
