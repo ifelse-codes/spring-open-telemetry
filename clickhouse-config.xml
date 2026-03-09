@@ -12,4 +12,18 @@
     <tcp_port>9000</tcp_port>
     <interserver_http_host>clickhouse</interserver_http_host>
     <interserver_http_port>9009</interserver_http_port>
+    <remote_servers>
+        <cluster>
+            <shard>
+                <replica>
+                    <host>clickhouse</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </cluster>
+    </remote_servers>
+    <macros>
+        <shard>01</shard>
+        <replica>01</replica>
+    </macros>
 </clickhouse>
