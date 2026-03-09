@@ -20,33 +20,32 @@ processors:
 exporters:
   clickhouse:
     endpoint: tcp://clickhouse:9000
-    database: signoz_traces
+    database: otel
+    ttl: 72h
+    logs_table_name: otel_logs
+    traces_table_name: otel_traces
+    metrics_table_name: otel_metrics
     timeout: 10s
-    sending_queue:
-      queue_size: 100
     retry_on_failure:
       enabled: true
       initial_interval: 5s
       max_interval: 30s
       max_elapsed_time: 300s
 
-  # Export traces to SigNoz
-  otlp/signoz:
-    endpoint: query-service:8085
-    tls:
-      insecure: true
+  debug:
+    verbosity: detailed
 
 service:
   pipelines:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [clickhouse, otlp/signoz]
+      exporters: [clickhouse, debug]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [clickhouse, otlp/signoz]
+      exporters: [clickhouse, debug]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [clickhouse, otlp/signoz]
+      exporters: [clickhouse, debug]

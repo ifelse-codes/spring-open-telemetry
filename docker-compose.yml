@@ -61,15 +61,13 @@ services:
       - signoz-network
 
   otel-collector:
-    image: signoz/signoz-otel-collector:0.88.11
+    image: otel/opentelemetry-collector-contrib:0.96.0
     restart: on-failure
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
       - type: bind
         source: ${PWD}/otel-collector-config.yaml
         target: /etc/otel-collector-config.yaml
-    environment:
-      - SIGNOZ_CLICKHOUSE_ENDPOINT=tcp://clickhouse:9000
     depends_on:
       - clickhouse
     ports:
